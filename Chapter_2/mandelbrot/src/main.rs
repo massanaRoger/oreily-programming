@@ -1,9 +1,8 @@
 use image::png::PNGEncoder;
 use image::ColorType;
-use num::{complex::ComplexFloat, Complex};
+use num::Complex;
 use std::env;
 use std::fs::File;
-use std::process::Output;
 use std::str::FromStr;
 
 fn main() {
@@ -33,8 +32,9 @@ fn main() {
                 let band_upper_left = pixel_to_point(bounds, (0, top), upper_left, lower_right);
                 let band_lower_right =
                     pixel_to_point(bounds, (bounds.0, top + height), upper_left, lower_right);
-                spawner
-                    .spawn(move |_| render(band, band_bounds, band_upper_left, band_lower_right));
+                spawner.spawn(move |_| {
+                    render(band, band_bounds, band_upper_left, band_lower_right);
+                });
             }
         })
         .unwrap();
@@ -46,7 +46,7 @@ fn main() {
 /// If `c` is not a member, return `Some(i)`, where `i` is the number of iterations it took for `c` to leave the circle
 /// of radius 2 centered on the origin. If `c` seems to be a member (more precisely, if we reached the iteration limit
 /// without being able to prove that 'c' is not a member), return 'None'
-fn complex_square_add_loop(c: Complex<f64>, limit: usize) -> Option<usize> {
+fn escape_time(c: Complex<f64>, limit: usize) -> Option<usize> {
     let mut z = Complex { re: 0.0, im: 0.0 };
     for i in 0..limit {
         if z.norm_sqr() > 4.0 {
@@ -118,9 +118,9 @@ fn render(
 ) {
     assert!(pixels.len() == bounds.0 * bounds.1);
     for row in 0..bounds.1 {
-        for col in 0..bounds.0 {
-            let pixel = pixel_to_point(bounds, (row, col), upper_left, lower_right);
-            pixels[row * bounds.0 + col] = match complex_square_add_loop(pixel, 255) {
+        for column in 0..bounds.0 {
+            let point = pixel_to_point(bounds, (column, row), upper_left, lower_right);
+            pixels[row * bounds.0 + column] = match escape_time(point, 255) {
                 None => 0,
                 Some(count) => 255 - count as u8,
             };
